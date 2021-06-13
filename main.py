@@ -6,17 +6,20 @@ from utils import Dataset, compute_accuracy
 
 
 def model_provider():
+    use_forest = True
+
     n_trees = 5
     tree_bagging = True
     feature_bagging = True
-    depth_lim = 8
+    depth_lim = 12
     min_samples = 0
 
-    # return DecisionTree(feature_bagging, depth_lim, min_samples)
-    return RandomForest(n_trees, tree_bagging, feature_bagging, depth_lim, min_samples)
+    if use_forest:
+        return RandomForest(n_trees, tree_bagging, feature_bagging, depth_lim, min_samples)
+    return DecisionTree(feature_bagging, depth_lim, min_samples)
 
 
-def run(dataset, use_holdout=True, holdout_ratio=0.8, kfold=8, episodes=5):
+def run(dataset, use_holdout=False, holdout_ratio=0.8, kfold=8, episodes=5):
     assert use_holdout or kfold >= 1
 
     accu_scores_train = []
@@ -49,4 +52,4 @@ def run(dataset, use_holdout=True, holdout_ratio=0.8, kfold=8, episodes=5):
 
 
 if __name__ == '__main__':
-    run(Dataset.Glass, use_holdout=False)
+    run(Dataset.Glass)

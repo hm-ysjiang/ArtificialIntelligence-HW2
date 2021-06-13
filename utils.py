@@ -1,6 +1,8 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import KFold
+import requests as req
 
 
 def compute_gini(clazz):
@@ -23,6 +25,20 @@ def compute_accuracy(a, b):
     return (a == b).sum() / a.shape[0]
 
 
+def kfold_indices(k, dimension):
+    fold_size = dimension // k
+    remainer = dimension % k
+    fold_sizes = [fold_size for _ in range(k)]
+    for _ in range(remainer):
+        fold_sizes[_] += 1
+    counter = 0
+    for fold in fold_sizes:
+        test_fold = np.array([True if counter <= x < counter + fold else False
+                              for x in range(dimension)])
+        counter += fold
+        yield np.invert(test_fold), test_fold
+
+
 class Dataset:
     FTYPE_REAL = 0
     FTYPE_CATEGORICAL = 1
@@ -36,7 +52,7 @@ class Dataset:
     Iris: 'Dataset' = None
     Wine: 'Dataset' = None
 
-    def __init__(self, filepath, feature_types, header=None, delim=','):
+    def __init__(self, filepath, feature_types, header=None, delim=',', dl_url=None):
         """Initialize a Dataset
 
         Args:
@@ -44,8 +60,21 @@ class Dataset:
             feature_types (Iterable / Callable): An iterable contains feature type of each column, or a callable that gives corresponding feature type from column index
             header (Iterable, optional): The header of the csv file. Defaults to None.
             delim (str, optional): The string used to seperate columns in the csv file. Defaults to ','.
+            dl_url (str, optional): The url of the data file to download if the file does not present. Defaults to None.
         """
         # Read csv in
+        fp = Path(filepath)
+        if not fp.exists():
+            if dl_url is not None:
+                print('Downloading dataset %s' % filepath)
+                res = req.get(dl_url)
+                if not fp.parent.exists():
+                    fp.parent.mkdir(parents=True)
+                with open(filepath, 'wb') as file:      # Write content with LF instead of CRLF
+                    file.write(res.text.encode())
+            else:
+                raise FileNotFoundError(
+                    'Cannot find file %s, and no dl_url provided.' % filepath)
         df = pd.read_csv(filepath, sep=delim, header=header)
         # Sanity check the feature types
         feature_types = Dataset._sanity_check_ftypes(
@@ -105,7 +134,7 @@ class Dataset:
         data, class_ = self._shuffle() \
             if shuffle else (self._data.copy(), self._class.copy())
         res = []
-        for train, test in KFold(k).split(class_):
+        for train, test in kfold_indices(k, class_.shape[0]):
             res.append((data[train, :], class_[train],
                        data[test, :], class_[test]))
         return res
@@ -154,14 +183,34 @@ class Dataset:
 
 
 Dataset.BezdekIris = Dataset('./data/iris/bezdekiris.data',
-                             lambda x: Dataset.FTYPE_REAL if x != 4 else Dataset.FTYPE_CLASS)
+                             lambda x: Dataset.FTYPE_REAL if x != 4 else Dataset.FTYPE_CLASS,
+                             dl_url='https://archive.ics.uci.edu/ml/machine-learning-databases/iris/bezdekIris.data')
+
 Dataset.BreastCancer = Dataset('./data/breast-cancer/breast-cancer.data',
-                               [Dataset.FTYPE_CATEGORICAL] * 6 + [Dataset.FTYPE_REAL] + [Dataset.FTYPE_CATEGORICAL] * 2 + [Dataset.FTYPE_CLASS])
+                               [Dataset.FTYPE_CATEGORICAL] * 6 +
+                               [Dataset.FTYPE_REAL] +
+                               [Dataset.FTYPE_CATEGORICAL] * 2 +
+                               [Dataset.FTYPE_CLASS],
+                               dl_url='https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer/breast-cancer.data')
+
 Dataset.Glass = Dataset('./data/glass/glass.data',
-                        [Dataset.FTYPE_UNUSED] + [Dataset.FTYPE_REAL] * 9 + [Dataset.FTYPE_CLASS])
+                        [Dataset.FTYPE_UNUSED] +
+                        [Dataset.FTYPE_REAL] * 9 +
+                        [Dataset.FTYPE_CLASS],
+                        dl_url='https://archive.ics.uci.edu/ml/machine-learning-databases/glass/glass.data')
+
 Dataset.Ionosphere = Dataset('./data/ionosphere/ionosphere.data',
-                             lambda x: Dataset.FTYPE_CLASS if x == 34 else Dataset.FTYPE_REAL)
+                             lambda x: Dataset.FTYPE_CLASS if x == 34 else Dataset.FTYPE_REAL,
+                             dl_url='https://archive.ics.uci.edu/ml/machine-learning-databases/ionosphere/ionosphere.data')
+
 Dataset.Iris = Dataset('./data/iris/iris.data',
-                       [Dataset.FTYPE_REAL, Dataset.FTYPE_REAL, Dataset.FTYPE_REAL, Dataset.FTYPE_REAL, Dataset.FTYPE_CLASS])
+                       [Dataset.FTYPE_REAL,
+                        Dataset.FTYPE_REAL,
+                        Dataset.FTYPE_REAL,
+                        Dataset.FTYPE_REAL,
+                        Dataset.FTYPE_CLASS],
+                       dl_url='https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data')
+
 Dataset.Wine = Dataset('./data/wine/wine.data',
-                       lambda x: Dataset.FTYPE_CLASS if x == 0 else Dataset.FTYPE_REAL)
+                       lambda x: Dataset.FTYPE_CLASS if x == 0 else Dataset.FTYPE_REAL,
+                       dl_url='https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data')

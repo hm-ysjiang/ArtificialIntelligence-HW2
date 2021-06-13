@@ -1,7 +1,6 @@
 import numpy as np
-from sklearn.model_selection import KFold
 
-from utils import compute_gini
+from utils import compute_gini, kfold_indices
 
 
 class DecisionTree:
@@ -150,7 +149,7 @@ class RandomForest:
             label = np.array(label)
 
         if self.tree_bagging:
-            for idx, fold_idx in enumerate(KFold(self.n_tree).split(data)):
+            for idx, fold_idx in enumerate(kfold_indices(self.n_tree, label.shape[0])):
                 self.trees[idx].train(data[fold_idx[0]], (label[fold_idx[0]]))
         else:
             [tree.train(data, label) for tree in self.trees]
