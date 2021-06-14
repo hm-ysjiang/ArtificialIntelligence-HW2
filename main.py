@@ -11,7 +11,7 @@ def model_provider():
     n_trees = 5
     tree_bagging = True
     feature_bagging = True
-    depth_lim = 12
+    depth_lim = 4
     min_samples = 0
 
     if use_forest:
@@ -52,4 +52,7 @@ def run(dataset, use_holdout=False, holdout_ratio=0.8, kfold=8, episodes=5):
 
 
 if __name__ == '__main__':
-    run(Dataset.Glass)
+    # Uncomment this line to enable extreme DecisionTree
+    # DecisionTree._F_bagging_policy = lambda x: 1
+
+    run(Dataset.Wine)

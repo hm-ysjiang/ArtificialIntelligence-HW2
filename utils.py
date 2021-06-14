@@ -28,9 +28,7 @@ def compute_accuracy(a, b):
 def kfold_indices(k, dimension):
     fold_size = dimension // k
     remainer = dimension % k
-    fold_sizes = [fold_size for _ in range(k)]
-    for _ in range(remainer):
-        fold_sizes[_] += 1
+    fold_sizes = [fold_size + 1 if _ < remainer else fold_size for _ in range(k)]
     counter = 0
     for fold in fold_sizes:
         test_fold = np.array([True if counter <= x < counter + fold else False

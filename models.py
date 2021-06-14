@@ -24,7 +24,7 @@ class DecisionTree:
                 return
             n_samples, n_features = data.shape
             # Consider only sqrt(n_features) features
-            n_consider = max(1, round(np.sqrt(n_features)))
+            n_consider = DecisionTree._F_bagging_policy(n_features)
             # Find splitable features
             splitable = list(filter(lambda feature: np.unique(data[:, feature]).shape[0] > 1,
                                     list(range(n_features))))
@@ -40,9 +40,9 @@ class DecisionTree:
                         threshold = (values[idx] + values[idx+1]) / 2
 
                         # Compute total Gini impurity
-                        g1 = [x <= threshold for x in data[:, feature]]
-                        g2 = [not x for x in g1]
-                        n1 = sum([1 if x else 0 for x in g1])
+                        g1 = data[:, feature] <= threshold
+                        g2 = np.invert(g1)
+                        n1 = g1.sum()
                         n2 = n_samples - n1
                         gini = n1 * compute_gini(label[g1]) \
                             + n2 * compute_gini(label[g2])
@@ -57,8 +57,8 @@ class DecisionTree:
                 return
 
             # Split the data into two groups and continue the split of children
-            g1 = [x <= self.threshold for x in data[:, self.feature]]
-            g2 = [not x for x in g1]
+            g1 = data[:, self.feature] <= self.threshold
+            g2 = np.invert(g1)
             self.child1 = DecisionTree.Node(self.depth+1)
             self.child1.split(data[g1], label[g1],
                               feature_bagging, depth_lim, min_samples)
@@ -71,6 +71,9 @@ class DecisionTree:
                 return self
             else:
                 return self.child1 if data[self.feature] <= self.threshold else self.child2
+    
+    def _F_bagging_policy(x):
+        return max(1, round(np.sqrt(x)))
 
     def __init__(self, feature_bagging=True, depth_lim=8, min_samples=0):
         """Initialize a Decision Tree Classifier
