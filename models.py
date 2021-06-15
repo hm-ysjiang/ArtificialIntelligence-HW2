@@ -15,7 +15,7 @@ class DecisionTree:
 
         def split(self, data, label, feature_bagging, depth_lim, min_samples):
             # Set node label if only one label presents
-            if np.unique(label).shape == 1:
+            if np.unique(label).shape[0] == 1:
                 self.label = label[0]
                 return
             # Set node label if limit reached
@@ -71,7 +71,7 @@ class DecisionTree:
                 return self
             else:
                 return self.child1 if data[self.feature] <= self.threshold else self.child2
-    
+
     def _F_bagging_policy(x):
         return max(1, round(np.sqrt(x)))
 
