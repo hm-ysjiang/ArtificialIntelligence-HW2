@@ -73,7 +73,7 @@ class DecisionTree:
                 return self.child1 if data[self.feature] <= self.threshold else self.child2
 
     def _F_bagging_policy(x):
-        return max(1, round(np.sqrt(x)))
+        return max(1, int(round(np.sqrt(x))))
 
     def __init__(self, feature_bagging=True, depth_lim=8, min_samples=0):
         """Initialize a Decision Tree Classifier
